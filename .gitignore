@@ -2,3 +2,4 @@
 /src/.vs
 /src/IceAndFire/obj/Debug/*.cache
 /src/IceAndFire/obj/
+/src/IceAndFire/bin/
