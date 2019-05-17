@@ -1,0 +1,4 @@
+*.suo
+/src/.vs
+/src/IceAndFire/obj/Debug/*.cache
+/src/IceAndFire/obj/
