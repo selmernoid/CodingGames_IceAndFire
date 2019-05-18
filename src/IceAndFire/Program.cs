@@ -1,4 +1,4 @@
-﻿#define SHOW_DEBUG
+﻿//#define SHOW_DEBUG
 
 using System;
 using System.Collections.Generic;
@@ -15,8 +15,8 @@ namespace ACOIF {
         }
 
         public enum Team {
-            Fire,
-            Ice
+            Fire = 1,
+            Ice = -1
         }
 
         private const int WIDTH = 12;
@@ -194,7 +194,7 @@ namespace ACOIF {
 
             public void MoveUnits() {
                 // Rush center
-                Position target = MyTeam == Team.Fire ? (5, 5) : (6, 6);
+                Position target = OpponentHq;// MyTeam == Team.Fire ? (5, 5) : (6, 6);
 
                 if (Map[target.X, target.Y].IsOwned) return;
 
@@ -203,10 +203,26 @@ namespace ACOIF {
             }
 
             public void TrainUnits() {
-                Position target = MyTeam == Team.Fire ? (1, 0) : (10, 11);
+                if (MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 7) {
+                    //Position target;// = MyTeam == Team.Fire ? (1, 0) : (10, 11);
+                    int start = MyTeam == Team.Fire ? 0 : 11;
 
-                if (MyGold >= TRAIN_COST_LEVEL_1)
-                    Train(1, target);
+                    for (var i = 0; i < 12; i++) {
+                        var check = start + i * (int)MyTeam;
+                        if (MyUnits.All(x=> x.Y != check)) {
+                            for (int j = 0; j < 11; j++) {
+                                Position target = (j, check);
+                                if (!Map[j, check].IsWall && Buildings.All(x => x.Position != target) && Units.All(x => x.Position != target))
+                                    Train(1, target);
+                            }
+                            break;
+                        }
+                    }
+
+
+                    //Train(1, target);
+                }
+
             }
 
             public void Wait() {
