@@ -1,4 +1,4 @@
-﻿//#define SHOW_DEBUG
+//#define SHOW_DEBUG
 
 using System;
 using System.Collections.Generic;
@@ -6,19 +6,15 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace ACOIF
-{
-    public class ACodeOfIceAndFire
-    {
-        public enum BuildingType
-        {
+namespace ACOIF {
+    public class ACodeOfIceAndFire {
+        public enum BuildingType {
             Hq,
             Mine,
             Tower
         }
 
-        public enum Team
-        {
+        public enum Team {
             Fire = 1,
             Ice = -1
         }
@@ -37,29 +33,26 @@ namespace ACOIF
         private const int TRAIN_COST_LEVEL_2 = 20;
         private const int TRAIN_COST_LEVEL_3 = 30;
 
-        private static void Main()
-        {
+        private static void Main() {
             var game = new Game();
             game.Init();
 
             // game loop
-            while (true)
-            {
+            while (true) {
                 game.Update();
                 game.Solve();
                 Console.WriteLine(game.Output.ToString());
             }
         }
 
-        public class Game
-        {
+        public class Game {
             public readonly List<Building> Buildings = new List<Building>();
 
             public readonly Tile[,] Map = new Tile[WIDTH, HEIGHT];
             public readonly StringBuilder Output = new StringBuilder();
 
 
-            private int MINE_COST => Buildings.Count(x => x.IsOwned && x.IsMine) * 4 + 20; // TODO: Check this formula
+            private int MINE_COST => Buildings.Count(x=> x.IsOwned && x.IsMine) * 4 + 20; // TODO: Check this formula
 
             public List<Position> MineSpots = new List<Position>();
 
@@ -82,27 +75,22 @@ namespace ACOIF
             public List<Position> OpponentPositions = new List<Position>();
             public List<Position> NeutralPositions = new List<Position>();
 
-            public void Init()
-            {
+            public void Init() {
                 for (var y = 0; y < HEIGHT; y++)
-                    for (var x = 0; x < WIDTH; x++)
-                    {
-                        Map[x, y] = new Tile
-                        {
+                    for (var x = 0; x < WIDTH; x++) {
+                        Map[x, y] = new Tile {
                             Position = (x, y)
                         };
                     }
 
                 var numberMineSpots = int.Parse(Console.ReadLine());
-                for (var i = 0; i < numberMineSpots; i++)
-                {
+                for (var i = 0; i < numberMineSpots; i++) {
                     var inputs = Console.ReadLine().Split(' ');
                     MineSpots.Add((int.Parse(inputs[0]), int.Parse(inputs[1])));
                 }
             }
 
-            public void Update()
-            {
+            public void Update() {
                 Units.Clear();
                 Buildings.Clear();
 
@@ -120,11 +108,9 @@ namespace ACOIF
                 OpponentIncome = int.Parse(Console.ReadLine());
 
                 // Read Map
-                for (var y = 0; y < HEIGHT; y++)
-                {
+                for (var y = 0; y < HEIGHT; y++) {
                     var line = Console.ReadLine();
-                    for (var x = 0; x < WIDTH; x++)
-                    {
+                    for (var x = 0; x < WIDTH; x++) {
                         var c = line[x] + "";
                         Map[x, y].IsWall = c == "#";
                         Map[x, y].Active = "OX".Contains(c);
@@ -136,8 +122,7 @@ namespace ACOIF
                             MyPositions.Add(p);
                         else if (Map[x, y].IsOpponent)
                             OpponentPositions.Add(p);
-                        else if (!Map[x, y].IsWall)
-                        {
+                        else if (!Map[x, y].IsWall) {
                             NeutralPositions.Add(p);
                         }
                     }
@@ -145,11 +130,9 @@ namespace ACOIF
 
                 // Read Buildings
                 var buildingCount = int.Parse(Console.ReadLine());
-                for (var i = 0; i < buildingCount; i++)
-                {
+                for (var i = 0; i < buildingCount; i++) {
                     var inputs = Console.ReadLine().Split(' ');
-                    Buildings.Add(new Building
-                    {
+                    Buildings.Add(new Building {
                         Owner = int.Parse(inputs[0]),
                         Type = (BuildingType)int.Parse(inputs[1]),
                         Position = (int.Parse(inputs[2]), int.Parse(inputs[3]))
@@ -158,11 +141,9 @@ namespace ACOIF
 
                 // Read Units
                 var unitCount = int.Parse(Console.ReadLine());
-                for (var i = 0; i < unitCount; i++)
-                {
+                for (var i = 0; i < unitCount; i++) {
                     var inputs = Console.ReadLine().Split(' ');
-                    Units.Add(new Unit
-                    {
+                    Units.Add(new Unit {
                         Owner = int.Parse(inputs[0]),
                         Id = int.Parse(inputs[1]),
                         Level = int.Parse(inputs[2]),
@@ -176,8 +157,7 @@ namespace ACOIF
                 MyTeam = Buildings.Find(b => b.IsHq && b.IsOwned).Position == (0, 0) ? Team.Fire : Team.Ice;
 
                 // Usefull for symmetric AI
-                if (MyTeam == Team.Ice)
-                {
+                if (MyTeam == Team.Ice) {
                     MyPositions.Reverse();
                     OpponentPositions.Reverse();
                     NeutralPositions.Reverse();
@@ -190,8 +170,7 @@ namespace ACOIF
             }
 
             [Conditional("SHOW_DEBUG")]
-            public void Debug()
-            {
+            public void Debug() {
                 Console.Error.WriteLine($"Turn: {Turn}");
                 Console.Error.WriteLine($"My team: {MyTeam}");
                 Console.Error.WriteLine($"My gold: {MyGold} (+{MyIncome})");
@@ -207,8 +186,7 @@ namespace ACOIF
              * TODO Solve
              * -----------------------------------------------------------
              */
-            public void Solve()
-            {
+            public void Solve() {
                 // Make sur the AI doesn't timeout
                 Wait();
 
@@ -221,8 +199,7 @@ namespace ACOIF
                 Turn++;
             }
 
-            public void MoveUnits()
-            {
+            public void MoveUnits() {
                 // Rush center
                 Position target = OpponentHq;// MyTeam == Team.Fire ? (5, 5) : (6, 6);
 
@@ -275,13 +252,12 @@ namespace ACOIF
                         }
                     }
                 }
-                if (Turn > 15 && MyGold >= TRAIN_COST_LEVEL_3 && MyUnits.Count(x => x.Level == 3) < 4)
-                {
+                if (Turn > 15 && MyGold >= TRAIN_COST_LEVEL_3 && MyUnits.Count(x=>x.Level == 3) < 4) {
                     var target = Map.ToEnumerable().Where(x =>
                             !x.IsWall
                             && Units.All(unit => unit.Position != x.Position) && Buildings.All(b => b.Position != x.Position)
                             && x.Position.GetSiblings().Any(sib => Map[sib.X, sib.Y].IsOwned && Map[sib.X, sib.Y].Active)
-                        ).OrderBy(x => x.Position.Dist(OpponentHq));
+                        ).OrderBy(x=>x.Position.Dist(OpponentHq));
                     if (target.Any())
                         Train(2, target.First().Position);
                 }
@@ -342,13 +318,11 @@ namespace ACOIF
                 Output.Append("WAIT;");
             }
 
-            public void Train(int level, Position position)
-            {
+            public void Train(int level, Position position) {
                 // TODO: Handle upkeep
                 Units.Add(new Unit { Id = -1, Owner = ME, Position = (position.X, position.Y), Level = level });
                 int cost = 0;
-                switch (level)
-                {
+                switch (level) {
                     case 1: cost = TRAIN_COST_LEVEL_1; break;
                     case 2: cost = TRAIN_COST_LEVEL_2; break;
                     case 3: cost = TRAIN_COST_LEVEL_3; break;
@@ -372,16 +346,14 @@ namespace ACOIF
         }
 
 
-        public class Unit : Entity
-        {
+        public class Unit : Entity {
             public int Id;
             public int Level;
 
             public override string ToString() => $"Unit => {base.ToString()} Id: {Id} Level: {Level}";
         }
 
-        public class Building : Entity
-        {
+        public class Building : Entity {
             public BuildingType Type;
 
             public bool IsHq => Type == BuildingType.Hq;
@@ -391,8 +363,7 @@ namespace ACOIF
             public override string ToString() => $"Building => {base.ToString()} Type: {Type}";
         }
 
-        public class Entity
-        {
+        public class Entity {
             public int Owner;
             public Position Position;
 
@@ -405,8 +376,7 @@ namespace ACOIF
             public override string ToString() => $"Owner: {Owner} Position: {Position}";
         }
 
-        public class Tile
-        {
+        public class Tile {
             public bool Active;
             public bool HasMineSpot;
             public bool IsWall;
@@ -422,8 +392,7 @@ namespace ACOIF
             public bool IsNeutral => Owner == NEUTRAL;
         }
 
-        public class Position
-        {
+        public class Position {
             public int X;
             public int Y;
 
@@ -431,12 +400,11 @@ namespace ACOIF
             {
                 if (X != 0) yield return (X - 1, Y);
                 if (Y != 0) yield return (X, Y - 1);
-                if (X != WIDTH - 1) yield return (X + 1, Y);
+                if (X != WIDTH - 1)  yield return (X + 1, Y);
                 if (Y != HEIGHT - 1) yield return (X, Y + 1);
             }
 
-            public static implicit operator Position(ValueTuple<int, int> cell) => new Position
-            {
+            public static implicit operator Position(ValueTuple<int, int> cell) => new Position {
                 X = cell.Item1,
                 Y = cell.Item2
             };
