@@ -30,10 +30,10 @@ namespace IceAndFire {
 		}
 	}
 
-	public class Grapth {
+	public class Graph {
 		public Dictionary<Point, List<Point>> Points { get; }
 
-		public Grapth(string[] input) {
+		public Graph(string[] input) {
 			Points = new Dictionary<Point, List<Point>>();
 
 			for (int i = 0; i < input.Length; i++) {
@@ -162,7 +162,7 @@ namespace IceAndFire {
 				"00000000000",
 			};
 
-			var gr = new Grapth(input);
+			var gr = new Graph(input);
 			var watch = System.Diagnostics.Stopwatch.StartNew();
 			// the code that you want to measure comes here
 			var a = gr.GetLessDistance(0, 0, 5, 0);
