@@ -99,8 +99,7 @@ public class ACodeOfIceAndFire
             }
         }
 
-        public void Update()
-        {
+        public void Update() {
             Units.Clear();
             Buildings.Clear();
 
@@ -118,11 +117,9 @@ public class ACodeOfIceAndFire
             OpponentIncome = int.Parse(Console.ReadLine());
 
             // Read Map
-            for (var y = 0; y < HEIGHT; y++)
-            {
+            for (var y = 0; y < HEIGHT; y++) {
                 var line = Console.ReadLine();
-                for (var x = 0; x < WIDTH; x++)
-                {
+                for (var x = 0; x < WIDTH; x++) {
                     var c = line[x] + "";
                     Map[x, y].IsWall = c == "#";
                     Map[x, y].Active = "OX".Contains(c);
@@ -134,8 +131,7 @@ public class ACodeOfIceAndFire
                         MyPositions.Add(p);
                     else if (Map[x, y].IsOpponent)
                         OpponentPositions.Add(p);
-                    else if (!Map[x, y].IsWall)
-                    {
+                    else if (!Map[x, y].IsWall) {
                         NeutralPositions.Add(p);
                     }
                 }
@@ -143,11 +139,9 @@ public class ACodeOfIceAndFire
 
             // Read Buildings
             var buildingCount = int.Parse(Console.ReadLine());
-            for (var i = 0; i < buildingCount; i++)
-            {
+            for (var i = 0; i < buildingCount; i++) {
                 var inputs = Console.ReadLine().Split(' ');
-                Buildings.Add(new Building
-                {
+                Buildings.Add(new Building {
                     Owner = int.Parse(inputs[0]),
                     Type = (BuildingType)int.Parse(inputs[1]),
                     Position = (int.Parse(inputs[2]), int.Parse(inputs[3]))
@@ -156,11 +150,9 @@ public class ACodeOfIceAndFire
 
             // Read Units
             var unitCount = int.Parse(Console.ReadLine());
-            for (var i = 0; i < unitCount; i++)
-            {
+            for (var i = 0; i < unitCount; i++) {
                 var inputs = Console.ReadLine().Split(' ');
-                Units.Add(new Unit
-                {
+                Units.Add(new Unit {
                     Owner = int.Parse(inputs[0]),
                     Id = int.Parse(inputs[1]),
                     Level = int.Parse(inputs[2]),
@@ -174,15 +166,18 @@ public class ACodeOfIceAndFire
             MyTeam = Buildings.Find(b => b.IsHq && b.IsOwned).Position == (0, 0) ? Team.Fire : Team.Ice;
 
             //Search Path algo
+
+
             for (int i = 0; i < WIDTH; i++)
                 for (int j = 0; j < HEIGHT; j++) {
-                    Map[i, j].DistanceToHq = 10;
-                    Map[i, j].DistanceToOpponentHq = 10;
+                    Map[i, j].DistanceToHq = 0;
+                    Map[i, j].DistanceToOpponentHq = 0;
                 }
+            SearchPathLength(0, 0);
+            SearchPathLength(WIDTH - 1, HEIGHT - 1);
 
             // Usefull for symmetric AI
-            if (MyTeam == Team.Ice)
-            {
+            if (MyTeam == Team.Ice) {
                 MyPositions.Reverse();
                 OpponentPositions.Reverse();
                 NeutralPositions.Reverse();
@@ -192,6 +187,37 @@ public class ACodeOfIceAndFire
 
             // Debug
             Debug();
+        }
+
+        byte GetTileValue(bool isEnemy, Position pos) {
+            return isEnemy ? Map[pos.X, pos.Y].DistanceToOpponentHq : Map[pos.X, pos.Y].DistanceToHq;
+        }
+        void SetTileValue(bool isEnemy, Position pos, byte value) {
+            if (isEnemy)
+                Map[pos.X, pos.Y].DistanceToOpponentHq = value;
+            else
+                Map[pos.X, pos.Y].DistanceToHq = value;
+        } 
+        
+        private void SearchPathLength(int startX, int startY) {
+            var frontier = new Queue<Position>();
+            Position start = (startX, startY);
+            var isEnemy = start == OpponentHq;
+
+
+            SetTileValue(isEnemy, start, 0);
+            frontier.Enqueue(start);
+
+            while (frontier.Count > 0) {
+                var current = frontier.Dequeue();
+                var currentLength = GetTileValue(isEnemy, current);
+                foreach (var point in current.GetSiblings()) {
+                    if (GetTileValue(isEnemy, point) == 0 && point != start) {
+                        frontier.Enqueue(point);
+                        SetTileValue(isEnemy, point, (byte)(currentLength + 1));
+                    }
+                }
+            };
         }
 
         [Conditional("SHOW_DEBUG")]
@@ -244,15 +270,14 @@ public class ACodeOfIceAndFire
                         ? 2 
                         : (Map[cell.X, cell.Y].IsOwned ? 0 : 1)))) // сначала 1 лвл, и те у которых рядом мало свободных клеток
             {
-                if (unit.Level == 1)
-                { //TODO: they stucks (
-                    target = 
+                if (unit.Level == 1) { //TODO: they stucks (
+                    target =
                         unit.Position.GetSiblings().Where(cell => !Map[cell.X, cell.Y].IsWall)
                         .FirstOrDefault(cell =>
                             Map[cell.X, cell.Y].Owner == OPPONENT &&
                             OpponentUnits.All(ou => ou.Position != cell) &&
                             Buildings.All(build => build.Position != cell)
-                            ) ?? 
+                            ) ??
                         unit.Position.GetSiblings().Where(cell => !Map[cell.X, cell.Y].IsWall).FirstOrDefault(cell => !Map[cell.X, cell.Y].IsOwned);
                     if (target == null) {
                         if (mines.Any()) {
@@ -261,9 +286,12 @@ public class ACodeOfIceAndFire
                             mines.Remove(closestMine);
                         } else target = OpponentHq;
                     }
-                }
-                else
+                } else {
+                    //unit.Position.GetSiblings().Where(cell => !Map[cell.X, cell.Y].IsWall &&
+                    //        OpponentUnits.All(ou => ou.Position != cell) &&
+                    //        Buildings.All(build => build.Position != cell))
                     target = OpponentHq;
+                }
 
                 Move(unit.Id, target);
             }
@@ -271,30 +299,28 @@ public class ACodeOfIceAndFire
 
         public void TrainUnits()
         {
-            if (MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 6)
-            {
+            if (MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 6) {
                 //Position target;// = MyTeam == Team.Fire ? (1, 0) : (10, 11);
                 int start = MyTeam == Team.Fire ? 0 : 11;
 
-                for (var i = 0; i < 12; i++)
-                {
-                    if (!(MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 4))
-                        break;
-
-                    var checkX = start + i * (int)MyTeam;
-                    if (MyUnits.All(x => x.X != checkX))
-                    {
-                        for (var j = 0; j < 12; j++)
-                        {
-                            var checkY = start + j * (int)MyTeam;
-                            Position target = (checkX, checkY);
-                            if (!Map[checkX, checkY].IsWall && Buildings.All(x => x.Position != target) && Units.All(x => x.Position != target))
-                            {
-                                Train(1, target);
-                                break;
+                while ((MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 4)) {
+                    Position minPos = (0, 0);
+                    int minValue = int.MaxValue;
+                    for (var i = 0; i < 12; i++) {
+                        for (var j = 0; j < 12; j++) {
+                            Position thisPos = (i, j);
+                            if (Map[i,j].DistanceToOpponentHq < minValue
+                                    && Buildings.All(b => b.Position != (i, j)) 
+                                    && Units.All(b => b.Position != (i, j))
+                                    && !Map[thisPos.X, thisPos.Y].IsWall
+                                    && thisPos.GetSiblings().Any(s => Map[s.X, s.Y].IsOwned)) {
+                                minPos = (i, j);
+                                minValue = Map[i, j].DistanceToOpponentHq;
                             }
                         }
-                        break;
+                    }
+                    if (minValue != int.MaxValue) {
+                        Train(1, minPos);
                     }
                 }
             }
@@ -383,7 +409,8 @@ public class ACodeOfIceAndFire
 
         public void Move(int id, Position position)
         {
-            // TODO: Handle map change
+            var unit = Units.First(x => x.Id == id);
+            unit.Position = (position.X, position.Y);
             Output.Append($"MOVE {id} {position.X} {position.Y};");
         }
         public void Build(BuildingType building, Position position)
@@ -484,137 +511,6 @@ public class ACodeOfIceAndFire
 
         public int Dist(Position p) => Math.Abs(X - p.X) + Math.Abs(Y - p.Y);
     }
-
-
-    public class PriorityQueue<T> {
-        List<(T elem, double priority)> Queue;
-
-        public PriorityQueue() {
-            Queue = new List<(T elem, double priority)>();
-        }
-
-        public bool IsEmpty() {
-            return Queue.Count == 0;
-        }
-
-        public void Add(T elem, double priority) {
-            Queue.Add((elem, priority));
-        }
-
-        public T Get() {
-            var res = Queue.OrderBy(x => x.priority).FirstOrDefault();
-            Queue.Remove(res);
-            if (!res.Equals(default((T elem, double priority))))
-                return res.elem;
-            else
-                return default(T);
-        }
-    }
-
-    public class Graph {
-        public Dictionary<Position, List<Position>> Positions { get; }
-
-        public Graph(string[] input) {
-            Positions = new Dictionary<Position, List<Position>>();
-
-            for (int i = 0; i < input.Length; i++) {
-                for (int j = 0; j < input[i].Length; j++) {
-                    if (input[i][j] == '1')
-                        continue;
-                    var Position = new Position() {
-                        X = j,
-                        Y = i
-                    };
-                    List<Position> res = new List<Position>();
-                    if (i > 0 && input[i - 1][j] != '1') {
-                        res.Add(new Position() {
-                            X = j,
-                            Y = i - 1
-                        });
-                    }
-                    if (j > 0 && input[i][j - 1] != '1') {
-                        res.Add(new Position() {
-                            X = j - 1,
-                            Y = i
-                        });
-                    }
-                    if (i < input.Length - 1 && input[i + 1][j] != '1') {
-                        res.Add(new Position() {
-                            X = j,
-                            Y = i + 1
-                        });
-                    }
-                    if (j < input[i].Length - 1 && input[i][j + 1] != '1') {
-                        res.Add(new Position() {
-                            X = j + 1,
-                            Y = i
-                        });
-                    }
-                    Positions.Add(Position, res);
-                }
-            }
-        }
-
-        private double Heuristic(Position a, Position b) {
-            return Math.Abs(a.X - b.X) + Math.Abs(a.Y - b.Y);
-        }
-
-        private int CostFunction(Position a, Position b) => 1;
-
-        public (int quantity, List<Position> route, Dictionary<Position, int> cost) GetLessDistance(int startX, int startY, int toX, int toY) {
-            var frontier = new PriorityQueue<Position>();
-            var start = new Position() {
-                X = startX,
-                Y = startY
-            };
-            var goal = new Position() {
-                X = toX,
-                Y = toY
-            };
-
-            var nullRef = new Position() {
-                X = -1,
-                Y = -1
-            };
-            frontier.Add(start, 0);
-
-            Dictionary<Position, int> CostSoFar = new Dictionary<Position, int>();
-            Dictionary<Position, Position> CameFrom = new Dictionary<Position, Position>();
-            CameFrom.Add(start, nullRef);
-            CostSoFar.Add(start, 0);
-
-            while (!frontier.IsEmpty()) {
-                var current = frontier.Get();
-
-                //if (current == goal) {
-                //	break;
-                //}
-
-                foreach (var child in Positions[current]) {
-                    var newcost = CostSoFar[current] + CostFunction(current, child);
-                    if (!CostSoFar.ContainsKey(child) || newcost < CostSoFar[child]) {
-                        CostSoFar[child] = newcost;
-                        double priority = newcost + Heuristic(goal, child);
-                        frontier.Add(child, priority);
-                        CameFrom[child] = current;
-                    }
-                }
-            }
-
-            var res = new List<Position>() {
-                goal
-            };
-            var cur = CameFrom[goal];
-            while (cur != start) {
-                res.Add(cur);
-                cur = CameFrom[cur];
-            }
-            res.Add(start);
-            res.Reverse();
-            return (CostSoFar[goal], res, CostSoFar);
-        }
-    }
-
 }
 
 
