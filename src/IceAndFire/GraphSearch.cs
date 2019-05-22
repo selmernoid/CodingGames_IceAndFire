@@ -107,9 +107,9 @@ namespace IceAndFire {
 			while (!frontier.IsEmpty()) {
 				var current = frontier.Get();
 
-				//if (current == goal) {
-				//	break;
-				//}
+				if (current == goal) {
+					break;
+				}
 
 				foreach (var child in Points[current]) {
 					var newcost = CostSoFar[current] + CostFunction(current, child);
@@ -133,6 +133,29 @@ namespace IceAndFire {
 			res.Add(start);
 			res.Reverse();
 			return (CostSoFar[goal], res, CostSoFar);
+		}
+
+		public Dictionary<Point, int> SearchInWidth(int startX, int startY) {
+			var frontier = new Queue<Point>();
+			Dictionary<Point, int> CameFrom = new Dictionary<Point, int>();
+			var start = new Point() {
+				X = startX,
+				Y = startY
+			};
+			CameFrom[start] = 0;
+			frontier.Enqueue(start);
+
+			while (frontier.Count > 0) {
+				var current = frontier.Dequeue();
+				foreach (var point in Points[current]) {
+					if (!CameFrom.ContainsKey(point)) {
+						frontier.Enqueue(point);
+						CameFrom[point] = CameFrom[current] + 1;
+					}
+				}
+			};
+
+			return CameFrom;
 		}
 	}
 
@@ -165,15 +188,15 @@ namespace IceAndFire {
 			var gr = new Graph(input);
 			var watch = System.Diagnostics.Stopwatch.StartNew();
 			// the code that you want to measure comes here
-			var a = gr.GetLessDistance(0, 0, 5, 0);
-			watch.Stop();
-			Console.WriteLine(watch.ElapsedMilliseconds);
-			Console.WriteLine(a.Item1);
-			Console.WriteLine(String.Join("\n", a.Item2.Select(x => $"{x.X}_{x.Y}")));
+			var a = gr.SearchInWidth(0, 0);
+			//watch.Stop();
+			//Console.WriteLine(watch.ElapsedMilliseconds);
+			//Console.WriteLine(a.Item1);
+			//Console.WriteLine(String.Join("\n", a.Item2.Select(x => $"{x.X}_{x.Y}")));
 			for (int i = 0; i < input.Length; i++) {
 				for (int j = 0; j < input[i].Length; j++) {
 					Console.Write(String.Format("{0:D2} {1},{2}\t", input[i][j] != '1'
-						? a.cost[new Point() {
+						? a[new Point() {
 							X = j,
 							Y = i
 						}]
