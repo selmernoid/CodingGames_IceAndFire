@@ -6,17 +6,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-public class ACodeOfIceAndFire
-{
-    public enum BuildingType
-    {
+public class ACodeOfIceAndFire {
+    public enum BuildingType {
         Hq,
         Mine,
         Tower
     }
 
-    public enum Team
-    {
+    public enum Team {
         Fire = 1,
         Ice = -1
     }
@@ -35,22 +32,19 @@ public class ACodeOfIceAndFire
     private const int TRAIN_COST_LEVEL_2 = 20;
     private const int TRAIN_COST_LEVEL_3 = 30;
 
-    private static void Main()
-    {
+    private static void Main() {
         var game = new Game();
         game.Init();
 
         // game loop
-        while (true)
-        {
+        while (true) {
             game.Update();
             game.Solve();
             Console.WriteLine(game.Output.ToString());
         }
     }
 
-    public class Game
-    {
+    public class Game {
         public readonly List<Building> Buildings = new List<Building>();
 
         public readonly Tile[,] Map = new Tile[WIDTH, HEIGHT];
@@ -80,20 +74,16 @@ public class ACodeOfIceAndFire
         public List<Position> OpponentPositions = new List<Position>();
         public List<Position> NeutralPositions = new List<Position>();
 
-        public void Init()
-        {
+        public void Init() {
             for (var y = 0; y < HEIGHT; y++)
-                for (var x = 0; x < WIDTH; x++)
-                {
-                    Map[x, y] = new Tile
-                    {
+                for (var x = 0; x < WIDTH; x++) {
+                    Map[x, y] = new Tile {
                         Position = (x, y)
                     };
                 }
 
             var numberMineSpots = int.Parse(Console.ReadLine());
-            for (var i = 0; i < numberMineSpots; i++)
-            {
+            for (var i = 0; i < numberMineSpots; i++) {
                 var inputs = Console.ReadLine().Split(' ');
                 MineSpots.Add((int.Parse(inputs[0]), int.Parse(inputs[1])));
             }
@@ -197,8 +187,8 @@ public class ACodeOfIceAndFire
                 Map[pos.X, pos.Y].DistanceToOpponentHq = value;
             else
                 Map[pos.X, pos.Y].DistanceToHq = value;
-        } 
-        
+        }
+
         private void SearchPathLength(int startX, int startY) {
             var frontier = new Queue<Position>();
             Position start = (startX, startY);
@@ -221,8 +211,7 @@ public class ACodeOfIceAndFire
         }
 
         [Conditional("SHOW_DEBUG")]
-        public void Debug()
-        {
+        public void Debug() {
             Console.Error.WriteLine($"Turn: {Turn}");
             Console.Error.WriteLine($"My team: {MyTeam}");
             Console.Error.WriteLine($"My gold: {MyGold} (+{MyIncome})");
@@ -238,8 +227,7 @@ public class ACodeOfIceAndFire
             * TODO Solve
             * -----------------------------------------------------------
             */
-        public void Solve()
-        {
+        public void Solve() {
             // Make sur the AI doesn't timeout
             Wait();
 
@@ -252,8 +240,7 @@ public class ACodeOfIceAndFire
             Turn++;
         }
 
-        public void MoveUnits()
-        {
+        public void MoveUnits() {
             // Rush center
             Position target = OpponentHq;// MyTeam == Team.Fire ? (5, 5) : (6, 6);
             if (Map[target.X, target.Y].IsOwned) return;
@@ -262,12 +249,12 @@ public class ACodeOfIceAndFire
             var selectedMines = new List<Entity>();
 
 
-            foreach (var unit in MyUnits.OrderBy(x=> x.Level)
-                .OrderByDescending(x=>
+            foreach (var unit in MyUnits.OrderBy(x => x.Level)
+                .OrderByDescending(x =>
                 x.Position.GetSiblings().Where(cell => !Map[cell.X, cell.Y].IsWall)
-                .Sum(cell =>                    
-                    Map[cell.X,cell.Y].IsOpponent
-                        ? 2 
+                .Sum(cell =>
+                    Map[cell.X, cell.Y].IsOpponent
+                        ? 2
                         : (Map[cell.X, cell.Y].IsOwned ? 0 : 1)))) // сначала 1 лвл, и те у которых рядом мало свободных клеток
             {
                 if (unit.Level == 1) { //TODO: they stucks (
@@ -297,20 +284,19 @@ public class ACodeOfIceAndFire
             }
         }
 
-        public void TrainUnits()
-        {
-            if (MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 6) {
+        public void TrainUnits() {
+            if (MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 16) {
                 //Position target;// = MyTeam == Team.Fire ? (1, 0) : (10, 11);
                 int start = MyTeam == Team.Fire ? 0 : 11;
 
-                while ((MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 4)) {
+                while ((MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 14)) {
                     Position minPos = (0, 0);
                     int minValue = int.MaxValue;
                     for (var i = 0; i < 12; i++) {
                         for (var j = 0; j < 12; j++) {
                             Position thisPos = (i, j);
-                            if (Map[i,j].DistanceToOpponentHq < minValue
-                                    && Buildings.All(b => b.Position != (i, j)) 
+                            if (Map[i, j].DistanceToOpponentHq < minValue
+                                    && Buildings.All(b => b.Position != (i, j))
                                     && Units.All(b => b.Position != (i, j))
                                     && !Map[thisPos.X, thisPos.Y].IsWall
                                     && thisPos.GetSiblings().Any(s => Map[s.X, s.Y].IsOwned)) {
@@ -324,8 +310,7 @@ public class ACodeOfIceAndFire
                     }
                 }
             }
-            if (Turn > 15 && MyGold >= TRAIN_COST_LEVEL_3 && MyUnits.Count(x => x.Level == 3) < 4)
-            {
+            if (Turn > 15 && MyGold >= TRAIN_COST_LEVEL_3 && MyUnits.Count(x => x.Level == 3) < 4) {
                 var target = Map.ToEnumerable().Where(x =>
                         !x.IsWall
                         && Units.All(unit => unit.Position != x.Position) && Buildings.All(b => b.Position != x.Position)
@@ -342,8 +327,7 @@ public class ACodeOfIceAndFire
                 Map.ToEnumerable().Any(t => t.IsOwned && t.Active && t.Position.Dist(x.Position) <= 2) &&
                 MyUnits.All(my => my.Level < x.Level || my.Position.Dist(x.Position) > 2)
             ).OrderBy(x => x.Position.Dist(MyHq));
-            foreach (var enemyUnit in danger)
-            {
+            foreach (var enemyUnit in danger) {
                 int requiredLvl = Math.Min(3, enemyUnit.Level + 1);
                 int requireMoney = requiredLvl * TRAIN_COST_LEVEL_1;
                 if (MyGold < requireMoney)
@@ -358,26 +342,22 @@ public class ACodeOfIceAndFire
             }
         }
 
-        public void BuildMines()
-        {
+        public void BuildMines() {
             if (MyGold < MINE_COST)
                 return;
             var mines =
                     MineSpots
-                    .Where(x =>
-                    {
+                    .Where(x => {
                         var cell = Map[x.X, x.Y];
                         return cell.IsOwned && cell.Active && Buildings.All(b => b.Position != cell.Position);
                     }).ToList();
 
-            foreach (var mine in mines)
-            {
+            foreach (var mine in mines) {
                 if (MyGold < MINE_COST)
                     return;
 
                 Build(BuildingType.Mine, mine);
-                Buildings.Add(new Building
-                {
+                Buildings.Add(new Building {
                     Owner = ME,
                     Type = BuildingType.Mine,
                     Position = (mine.X, mine.Y)
@@ -386,18 +366,15 @@ public class ACodeOfIceAndFire
             }
         }
 
-        public void Wait()
-        {
+        public void Wait() {
             Output.Append("WAIT;");
         }
 
-        public void Train(int level, Position position)
-        {
+        public void Train(int level, Position position) {
             // TODO: Handle upkeep
             Units.Add(new Unit { Id = -1, Owner = ME, Position = (position.X, position.Y), Level = level });
             int cost = 0;
-            switch (level)
-            {
+            switch (level) {
                 case 1: cost = TRAIN_COST_LEVEL_1; break;
                 case 2: cost = TRAIN_COST_LEVEL_2; break;
                 case 3: cost = TRAIN_COST_LEVEL_3; break;
@@ -407,14 +384,12 @@ public class ACodeOfIceAndFire
             Output.Append($"TRAIN {level} {position.X} {position.Y};");
         }
 
-        public void Move(int id, Position position)
-        {
+        public void Move(int id, Position position) {
             var unit = Units.First(x => x.Id == id);
             unit.Position = (position.X, position.Y);
             Output.Append($"MOVE {id} {position.X} {position.Y};");
         }
-        public void Build(BuildingType building, Position position)
-        {
+        public void Build(BuildingType building, Position position) {
             // TODO: Handle map change
             Output.Append($"BUILD {building.ToString().ToUpper()} {position.X} {position.Y};");
             MyGold -= MINE_COST;
@@ -422,16 +397,14 @@ public class ACodeOfIceAndFire
     }
 
 
-    public class Unit : Entity
-    {
+    public class Unit : Entity {
         public int Id;
         public int Level;
 
         public override string ToString() => $"Unit => {base.ToString()} Id: {Id} Level: {Level}";
     }
 
-    public class Building : Entity
-    {
+    public class Building : Entity {
         public BuildingType Type;
 
         public bool IsHq => Type == BuildingType.Hq;
@@ -441,8 +414,7 @@ public class ACodeOfIceAndFire
         public override string ToString() => $"Building => {base.ToString()} Type: {Type}";
     }
 
-    public class Entity
-    {
+    public class Entity {
         public int Owner;
         public Position Position;
 
@@ -455,8 +427,7 @@ public class ACodeOfIceAndFire
         public override string ToString() => $"Owner: {Owner} Position: {Position}";
     }
 
-    public class Tile
-    {
+    public class Tile {
         public bool Active;
         public bool HasMineSpot;
         public bool IsWall;
@@ -514,10 +485,8 @@ public class ACodeOfIceAndFire
 }
 
 
-public static class ArrayExtensions
-{
-    public static IEnumerable<T> ToEnumerable<T>(this T[,] target)
-    {
+public static class ArrayExtensions {
+    public static IEnumerable<T> ToEnumerable<T>(this T[,] target) {
         foreach (var item in target)
             yield return item;
     }
