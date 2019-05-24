@@ -28,6 +28,8 @@ public class ACodeOfIceAndFire {
     private const int NEUTRAL = -1;
 
 
+    private const int BUILD_TOWER_COST = 15;
+
     private const int TRAIN_COST_LEVEL_1 = 10;
     private const int TRAIN_COST_LEVEL_2 = 20;
     private const int TRAIN_COST_LEVEL_3 = 30;
@@ -160,6 +162,8 @@ public class ACodeOfIceAndFire {
 
             for (int i = 0; i < WIDTH; i++)
                 for (int j = 0; j < HEIGHT; j++) {
+                    Map[i, j].TrainCost = decimal.MinValue;
+                    Map[i, j].OccupeGoldCost = null;
                     Map[i, j].DistanceToHq = 0;
                     Map[i, j].DistanceToOpponentHq = 0;
                 }
@@ -233,6 +237,8 @@ public class ACodeOfIceAndFire {
 
             MoveUnits();
 
+            EvaluateCellsCostFunction();
+
             TrainUnits();
 
             BuildMines();
@@ -284,6 +290,46 @@ public class ACodeOfIceAndFire {
             }
         }
 
+        const decimal COST_FN_DIST = 0.1m;
+        const decimal COST_FN_INC  = 1.0m;
+        //const decimal COST_FN_UNIT = 0.1m;
+        const decimal COST_FN_GOLD = 0.09m;
+        const decimal[] COST_FN_UNIT = [2, 5, 10];
+
+        public void EvaluateCellsCostFunction() {
+            //TODO: Eval OccupeGoldCost
+
+            //END TODO
+            for (int i = 0; i < WIDTH - 1; i++) {
+                for (int j = 0; j < HEIGHT - 1; j++) {
+                    var cell = Map[i, j];
+                    if (cell.IsWall
+                        || cell.OccupeGoldCost == null
+                        || cell.Position == MyHq 
+                        || MyUnits.Any(u => u.Position == cell.Position) 
+                        || Buildings.Any(b => b.IsOwned && b.Position == cell.Position)) {
+                        cell.TrainCost = decimal.MinValue;
+                        continue;
+                    }
+                    if (cell.Position == OpponentHq) {
+                        cell.TrainCost = decimal.MaxValue;
+                        continue;
+                    }
+
+                    var distanceBonus = (WIDTH + HEIGHT - cell.DistanceToOpponentHq) *   COST_FN_DIST;
+                    var incomeBonus = (cell.IsOpponent ? 2 : (cell.IsNeutral ? 1 : 0)) * COST_FN_INC;
+
+                    var enemyUnit = OpponentUnits.FirstOrDefault(b => b.Position == cell.Position);
+                    var unitDestroyBonus = enemyUnit == null ? 0 : COST_FN_UNIT[enemyUnit.Level - 1];
+
+                    var enemyBuild = Buildings.FirstOrDefault(b => b.Position == cell.Position);
+                    var buildDestroyBonus = enemyBuild == null ? 0 : enemyBuild.Type == BuildingType.Mine ? 24 : BUILD_TOWER_COST;
+                    var goldTax = (cell.OccupeGoldCost.Value-buildDestroyBonus) * COST_FN_GOLD;
+
+                    cell.TrainCost = distanceBonus + incomeBonus + unitDestroyBonus - goldTax;
+                }
+            }
+        }
         public void TrainUnits() {
             if (MyGold >= TRAIN_COST_LEVEL_1 && MyUnits.Count < 16) {
                 //Position target;// = MyTeam == Team.Fire ? (1, 0) : (10, 11);
@@ -440,6 +486,10 @@ public class ACodeOfIceAndFire {
 
         public byte DistanceToHq;
         public byte DistanceToOpponentHq;
+
+        public decimal? OccupeGoldCost;
+        public decimal TrainCost;
+
 
         public bool IsOwned => Owner == ME;
         public bool IsOpponent => Owner == OPPONENT;
