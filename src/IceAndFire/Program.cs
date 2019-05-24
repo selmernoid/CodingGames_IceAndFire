@@ -79,6 +79,10 @@ public class ACodeOfIceAndFire
         public List<Position> MyPositions = new List<Position>();
         public List<Position> OpponentPositions = new List<Position>();
         public List<Position> NeutralPositions = new List<Position>();
+        
+        public static Dictionary<int, List<Position>> expanders = new Dictionary<int, List<Position>>();
+
+        public static uint ExpansionEnd = 11;
 
         public void Init()
         {
@@ -240,7 +244,7 @@ public class ACodeOfIceAndFire
             */
         public void Solve()
         {
-            // Make sur the AI doesn't timeout
+            // Make sure the AI doesn't timeout
             Wait();
 
             MoveUnits();
@@ -268,9 +272,10 @@ public class ACodeOfIceAndFire
                 .Sum(cell =>                    
                     Map[cell.X,cell.Y].IsOpponent
                         ? 2 
-                        : (Map[cell.X, cell.Y].IsOwned ? 0 : 1)))) // сначала 1 лвл, и те у которых рядом мало свободных клеток
+                        : (Map[cell.X, cell.Y].IsOwned ? 0 : 1)))) // сначала 1 лвл, и те у которых рядом мало свободных клеток // 
             {
                 if (unit.Level == 1) { //TODO: they stucks (
+
                     target =
                         unit.Position.GetSiblings().Where(cell => !Map[cell.X, cell.Y].IsWall)
                         .FirstOrDefault(cell =>
@@ -278,7 +283,28 @@ public class ACodeOfIceAndFire
                             OpponentUnits.All(ou => ou.Position != cell) &&
                             Buildings.All(build => build.Position != cell)
                             ) ??
-                        unit.Position.GetSiblings().Where(cell => !Map[cell.X, cell.Y].IsWall).FirstOrDefault(cell => !Map[cell.X, cell.Y].IsOwned);
+                        unit.Position.GetSiblings().Where(cell => !Map[cell.X, cell.Y].IsWall).FirstOrDefault(cell => !Map[cell.X, cell.Y].IsOwned /*TODO expanders logic*/);
+
+                    //first expansion
+                    for (var i = 0; i < ExpansionEnd; i++)
+                    {
+                        var nextTarget = target.GetSiblings().Where(cell => !Map[cell.X, cell.Y].IsWall)
+                        .FirstOrDefault(cell =>
+                            Map[cell.X, cell.Y].Owner == OPPONENT &&
+                            OpponentUnits.All(ou => ou.Position != cell) &&
+                            Buildings.All(build => build.Position != cell)
+                            ) ??
+                        target.GetSiblings().Where(cell => !Map[cell.X, cell.Y].IsWall).FirstOrDefault(cell => !Map[cell.X, cell.Y].IsOwned || /*TODO expanders logic*/);
+
+                        if (Game.expanders[unit.Id] == null)
+                        {
+                            Game.expanders.Add(unit.Id, new List<Position>());
+                        }
+                        //else
+                        Game.expanders[unit.Id].Add(nextTarget);
+                        //TODO moving expanders logic
+                    }
+
                     if (target == null) {
                         if (mines.Any()) {
                             var closestMine = mines.OrderBy(x => unit.Position.Dist(x)).FirstOrDefault();
@@ -480,11 +506,13 @@ public class ACodeOfIceAndFire
         public int Y;
 
         public IEnumerable<Position> GetSiblings() {
-            if (X != 0) yield return (X - 1, Y);
-            if (Y != 0) yield return (X, Y - 1);
-            if (X != WIDTH - 1) yield return (X + 1, Y);
-            if (Y != HEIGHT - 1) yield return (X, Y + 1);
+            if (X != 0) yield return (X - 1, Y); //left <-
+            if (Y != 0) yield return (X, Y - 1); //^ up
+            if (X != WIDTH - 1) yield return (X + 1, Y); // -> right
+            if (Y != HEIGHT - 1) yield return (X, Y + 1); // down
         }
+        //TODO: 
+        //public int FriendlySiblings;
 
         public static implicit operator Position(ValueTuple<int, int> cell) => new Position {
             X = cell.Item1,
